@@ -1,4 +1,4 @@
-package domain
+package balance
 
 import (
 	"encoding/json"
