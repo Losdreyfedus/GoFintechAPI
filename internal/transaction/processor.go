@@ -1,12 +1,13 @@
 package transaction
 
 import (
+	"backend_path/internal/domain"
 	"sync"
 	"sync/atomic"
 )
 
 type TransactionJob struct {
-	Tx *Transaction
+	Tx *domain.Transaction
 	// Additional fields can be added as needed
 }
 

@@ -1,22 +1,57 @@
 package main
 
 import (
-	"log"
-	"net/http"
-	"os"
-
 	"backend_path/internal/api"
+	"backend_path/internal/config"
+	"backend_path/internal/user"
+	"backend_path/pkg/database"
+	"backend_path/pkg/jwt"
+	"backend_path/pkg/logger"
+	"backend_path/pkg/server"
+	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	// .env dosyasını otomatik yükle
+	_ = godotenv.Load()
 
-	router := api.NewRouter()
-	log.Printf("Server started on port %s", port)
-	if err := http.ListenAndServe(":"+port, router); err != nil {
-		log.Fatal(err)
+	// Load configuration
+	cfg := config.Load()
+
+	// Initialize logger
+	logger.InitLogger("info", cfg.Environment == "development")
+
+	// Initialize database connection
+	db, err := database.NewConnection(cfg.DatabaseURL)
+	if err != nil {
+		logger.Fatal("Failed to connect to database", err, nil)
+	}
+	defer db.Close()
+
+	// Initialize JWT service
+	jwtService := jwt.NewJWTService(cfg.JWTSecret, 1*time.Hour)
+
+	// Initialize repositories
+	userRepo := user.NewSQLRepository(db.DB)
+
+	// Initialize services
+	userService := user.NewService(userRepo)
+
+	// Create router with dependencies
+	router := api.NewRouter(userService, jwtService)
+
+	// Create server
+	srv := server.NewServer(":"+cfg.Port, router)
+
+	// Start server with graceful shutdown
+	logger.Info("Starting application", map[string]interface{}{
+		"port":        cfg.Port,
+		"environment": cfg.Environment,
+	})
+
+	if err := srv.Start(); err != nil {
+		logger.Fatal("Server failed to start", err, nil)
 	}
 }

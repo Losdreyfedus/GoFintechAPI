@@ -1,26 +1,21 @@
 package user
 
 import (
+	"backend_path/internal/domain"
 	"errors"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Service interface {
-	Register(user *User, password string) error
-	Authenticate(email, password string) (*User, error)
-	Authorize(user *User, role string) bool
-}
-
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) Service {
+func NewService(repo Repository) UserService {
 	return &service{repo: repo}
 }
 
-func (s *service) Register(user *User, password string) error {
+func (s *service) Register(user *domain.User, password string) error {
 	if err := user.Validate(); err != nil {
 		return err
 	}
@@ -32,7 +27,7 @@ func (s *service) Register(user *User, password string) error {
 	return s.repo.Create(user)
 }
 
-func (s *service) Authenticate(email, password string) (*User, error) {
+func (s *service) Authenticate(email, password string) (*domain.User, error) {
 	user, err := s.repo.GetByEmail(email)
 	if err != nil {
 		return nil, err
@@ -43,6 +38,11 @@ func (s *service) Authenticate(email, password string) (*User, error) {
 	return user, nil
 }
 
-func (s *service) Authorize(user *User, role string) bool {
+func (s *service) Authorize(user *domain.User, role string) bool {
 	return user.Role == role
+}
+
+// GetByID retrieves a user by ID
+func (s *service) GetByID(id int) (*domain.User, error) {
+	return s.repo.GetByID(id)
 }

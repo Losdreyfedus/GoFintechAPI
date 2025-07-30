@@ -1,8 +1,10 @@
 package transaction
 
+import "backend_path/internal/domain"
+
 type Repository interface {
-	Create(tx *Transaction) error
-	GetByID(id int) (*Transaction, error)
-	GetByUser(userID int) ([]*Transaction, error)
-	Update(tx *Transaction) error
+	Create(tx *domain.Transaction) error
+	GetByID(id int) (*domain.Transaction, error)
+	GetByUser(userID int) ([]*domain.Transaction, error)
+	Update(tx *domain.Transaction) error
 }

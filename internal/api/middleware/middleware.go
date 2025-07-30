@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"backend_path/internal/metrics"
 )
 
 type contextKey string
@@ -78,4 +80,40 @@ func PerformanceMiddleware(next http.Handler) http.Handler {
 		duration := time.Since(start)
 		log.Printf("%s %s took %v", r.Method, r.URL.Path, duration)
 	})
+}
+
+// Prometheus metrics middleware
+func PrometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Increment in-flight requests
+		metrics.HttpRequestsInFlight.Inc()
+		defer metrics.HttpRequestsInFlight.Dec()
+
+		// Create a response writer wrapper to capture status code
+		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		next.ServeHTTP(wrapped, r)
+
+		// Record metrics
+		duration := time.Since(start).Seconds()
+		metrics.HttpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, string(rune(wrapped.statusCode))).Inc()
+		metrics.HttpRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
+	})
+}
+
+// responseWriter wraps http.ResponseWriter to capture status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	return rw.ResponseWriter.Write(b)
 }

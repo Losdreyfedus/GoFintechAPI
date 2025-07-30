@@ -1,9 +1,12 @@
 package user
 
+import "backend_path/internal/domain"
+
 type Repository interface {
-	Create(user *User) error
-	GetByID(id int) (*User, error)
-	GetByEmail(email string) (*User, error)
-	Update(user *User) error
+	Create(user *domain.User) error
+	GetByID(id int) (*domain.User, error)
+	GetByEmail(email string) (*domain.User, error)
+	Update(user *domain.User) error
 	Delete(id int) error
+	GetAll() ([]*domain.User, error)
 }

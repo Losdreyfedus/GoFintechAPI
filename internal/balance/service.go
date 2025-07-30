@@ -1,16 +1,10 @@
 package balance
 
-type Service interface {
-	UpdateBalance(userID int, amount float64) error
-	GetCurrentBalance(userID int) (float64, error)
-	GetHistoricalBalance(userID int, atTime string) (float64, error)
-}
-
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) Service {
+func NewService(repo Repository) BalanceService {
 	return &service{repo: repo}
 }
 
