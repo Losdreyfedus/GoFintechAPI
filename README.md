@@ -96,20 +96,6 @@ docker-compose up --build
 
 ---
 
-## 🧱 Database Schema
-
-### `users` Table
-| Column      | Type           | Description             |
-|-------------|----------------|-------------------------|
-| id          | INT (PK)       | Auto-incremented ID     |
-| username    | NVARCHAR(100)  | Unique user identifier  |
-| password    | NVARCHAR(100)  | Hashed user password    |
-| created_at  | DATETIME       | Account creation date   |
-
-Other core tables include: `transactions`, `balances`, `audit_logs`.
-
----
-
 ## 📁 Project Structure
 ```
 ├── cmd/
