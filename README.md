@@ -7,10 +7,11 @@
 ## 🔑 Key Features
 
 - **User Management** – Registration, login, and role-based authorization
-- **Transaction Processing** – Credit, debit, and transfer operations
-- **Real-Time Balance Tracking** – Current and historical balance queries
+- **Transaction Processing** – Credit, debit, and transfer operations with full business logic
+- **Real-Time Balance Tracking** – Current and historical balance queries with thread-safe operations
 - **Event Sourcing & Scheduling** – Reliable banking operations
 - **Redis Caching** – Performance boost with in-memory caching
+- **Rate Limiting** – IP-based rate limiting for API protection
 - **Monitoring & Metrics** – Prometheus endpoints and Grafana dashboards
 - **Dockerized** – Easy local and production deployment
 
@@ -145,6 +146,23 @@ go test ./...
 ```bash
 golangci-lint run
 ```
+
+## 🚀 Recent Updates
+
+### ✅ Completed Core Features (Latest)
+- **TransactionService** - Full implementation of credit, debit, and transfer operations
+- **BalanceService** - Thread-safe balance management with historical tracking
+- **API Handlers** - Complete transaction and balance endpoint implementations
+- **Rate Limiting** - IP-based rate limiting middleware (100 requests/minute)
+- **Repository Layer** - SQL implementations for transactions and balances
+- **DTO Updates** - Added missing request/response structures
+
+### 🔧 Technical Improvements
+- Enhanced error handling with structured logging
+- Thread-safe balance operations using sync.RWMutex
+- Proper validation for all transaction types
+- Comprehensive API response formatting
+- Service dependency injection in handlers
 
 ---
 

@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"backend_path/internal/api/handler"
 	mw "backend_path/internal/api/middleware"
@@ -23,7 +24,8 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 	// Ortak middleware'ler
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(mw.PrometheusMiddleware) // Prometheus metrics
+	r.Use(mw.PrometheusMiddleware)                    // Prometheus metrics
+	r.Use(mw.RateLimitMiddleware(100, 1*time.Minute)) // Rate limiting: 100 requests per minute
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

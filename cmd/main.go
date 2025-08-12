@@ -2,7 +2,10 @@ package main
 
 import (
 	"backend_path/internal/api"
+	"backend_path/internal/api/handler"
+	"backend_path/internal/balance"
 	"backend_path/internal/config"
+	"backend_path/internal/transaction"
 	"backend_path/internal/user"
 	"backend_path/pkg/database"
 	"backend_path/pkg/jwt"
@@ -35,9 +38,17 @@ func main() {
 
 	// Initialize repositories
 	userRepo := user.NewSQLRepository(db.DB)
+	transactionRepo := transaction.NewSQLRepository(db.DB)
+	balanceRepo := balance.NewSQLRepository(db.DB)
 
 	// Initialize services
 	userService := user.NewService(userRepo)
+	transactionService := transaction.NewService(transactionRepo)
+	balanceService := balance.NewService(balanceRepo)
+
+	// Set service dependencies in handlers
+	handler.SetTransactionService(transactionService)
+	handler.SetBalanceService(balanceService)
 
 	// Create router with dependencies
 	router := api.NewRouter(userService, jwtService)
