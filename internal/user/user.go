@@ -8,4 +8,7 @@ type UserService interface {
 	Authenticate(email, password string) (*domain.User, error)
 	Authorize(user *domain.User, role string) bool
 	GetByID(id int) (*domain.User, error)
+	GetAllUsers() ([]*domain.User, error)
+	UpdateUser(id int, username, email, role string) (*domain.User, error)
+	DeleteUser(id int) error
 }

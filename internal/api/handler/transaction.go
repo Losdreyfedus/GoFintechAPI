@@ -236,7 +236,14 @@ func GetTransaction(w http.ResponseWriter, r *http.Request) {
 
 // Helper function to get user ID from context
 func getUserIDFromContext(r *http.Request) int {
-	// This would be set by the auth middleware
-	// For now, return a default value
-	return 1 // TODO: Implement proper user ID extraction from JWT context
+	userID := r.Context().Value("user")
+	if userID == nil {
+		return 0
+	}
+
+	if id, ok := userID.(int); ok {
+		return id
+	}
+
+	return 0
 }

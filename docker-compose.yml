@@ -5,13 +5,15 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
-      - DATABASE_URL=sqlserver://sa:YourPassword123@db:1433?database=gofintech
+      - "DATABASE_URL=sqlserver://as:Test123!@db:1433?database=gofintech&encrypt=disable&TrustServerCertificate=true"
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app-network
 
@@ -19,9 +21,16 @@ services:
     image: mcr.microsoft.com/mssql/server:2019-latest
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourPassword123
+      - "SA_PASSWORD=Test123!"
+      - MSSQL_PID=Developer
+      - MSSQL_AGENT_ENABLED=true
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5 bash -c '</dev/tcp/127.0.0.1/1433'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     ports:
-      - "1433:1433"
+      - "1434:1433"
     volumes:
       - mssql_data:/var/opt/mssql
     networks:

@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"backend_path/internal/domain"
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -17,8 +18,8 @@ func NewSQLRepository(db *sql.DB) Repository {
 func (r *sqlRepository) Create(tx *domain.Transaction) error {
 	query := `
 		INSERT INTO transactions (from_user_id, to_user_id, amount, type, status, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-		SELECT SCOPE_IDENTITY()
+		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
+		SELECT SCOPE_IDENTITY();
 	`
 
 	var id int
@@ -40,11 +41,56 @@ func (r *sqlRepository) Create(tx *domain.Transaction) error {
 	return nil
 }
 
+func (r *sqlRepository) CreateWithTransaction(ctx context.Context, tx *domain.Transaction) error {
+	// Begin database transaction
+	dbTx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	// Defer rollback in case of error
+	defer func() {
+		if err != nil {
+			dbTx.Rollback()
+		}
+	}()
+
+	query := `
+		INSERT INTO transactions (from_user_id, to_user_id, amount, type, status, created_at)
+		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
+		SELECT SCOPE_IDENTITY();
+	`
+
+	var id int
+	err = dbTx.QueryRowContext(ctx,
+		query,
+		tx.FromUserID,
+		tx.ToUserID,
+		tx.Amount,
+		tx.Type,
+		tx.Status,
+		tx.CreatedAt,
+	).Scan(&id)
+
+	if err != nil {
+		return fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	tx.ID = id
+
+	// Commit transaction
+	if err = dbTx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (r *sqlRepository) GetByID(id int) (*domain.Transaction, error) {
 	query := `
 		SELECT id, from_user_id, to_user_id, amount, type, status, created_at
 		FROM transactions
-		WHERE id = ?
+		WHERE id = @p1
 	`
 
 	tx := &domain.Transaction{}
@@ -72,7 +118,7 @@ func (r *sqlRepository) GetByUser(userID int) ([]*domain.Transaction, error) {
 	query := `
 		SELECT id, from_user_id, to_user_id, amount, type, status, created_at
 		FROM transactions
-		WHERE from_user_id = ? OR to_user_id = ?
+		WHERE from_user_id = @p1 OR to_user_id = @p2
 		ORDER BY created_at DESC
 	`
 
@@ -106,8 +152,8 @@ func (r *sqlRepository) GetByUser(userID int) ([]*domain.Transaction, error) {
 func (r *sqlRepository) Update(tx *domain.Transaction) error {
 	query := `
 		UPDATE transactions
-		SET from_user_id = ?, to_user_id = ?, amount = ?, type = ?, status = ?
-		WHERE id = ?
+		SET from_user_id = @p1, to_user_id = @p2, amount = @p3, type = @p4, status = @p5
+		WHERE id = @p6
 	`
 
 	_, err := r.db.Exec(

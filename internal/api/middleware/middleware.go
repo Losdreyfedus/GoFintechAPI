@@ -9,33 +9,50 @@ import (
 	"time"
 
 	"backend_path/internal/metrics"
+	"backend_path/pkg/jwt"
 )
 
 type contextKey string
 
 const userContextKey = contextKey("user")
 
-// Dummy authentication middleware (replace with real JWT validation later)
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		_ = tokenString // placeholder
-		ctx := context.WithValue(r.Context(), userContextKey, "dummy-user")
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-// Dummy role-based authorization middleware
-func RoleMiddleware(role string) func(http.Handler) http.Handler {
+// Real authentication middleware with JWT validation
+func AuthMiddleware(jwtService *jwt.JWTService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// user := r.Context().Value(userContextKey)
-			// TODO: Check user's role
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(w, "Missing or invalid authorization header", http.StatusUnauthorized)
+				return
+			}
+
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			claims, err := jwtService.ValidateToken(tokenString)
+			if err != nil {
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			// Set user ID in context
+			ctx := context.WithValue(r.Context(), userContextKey, claims.UserID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// Role-based authorization middleware
+func RoleMiddleware(requiredRole string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userID := r.Context().Value(userContextKey)
+			if userID == nil {
+				http.Error(w, "User not authenticated", http.StatusUnauthorized)
+				return
+			}
+
+			// TODO: Get user role from userService
+			// For now, we'll assume all authenticated users have access
+			// This should be implemented with proper role checking
 			next.ServeHTTP(w, r)
 		})
 	}

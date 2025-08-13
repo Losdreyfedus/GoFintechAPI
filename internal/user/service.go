@@ -46,3 +46,31 @@ func (s *service) Authorize(user *domain.User, role string) bool {
 func (s *service) GetByID(id int) (*domain.User, error) {
 	return s.repo.GetByID(id)
 }
+
+// GetAllUsers retrieves all users
+func (s *service) GetAllUsers() ([]*domain.User, error) {
+	return s.repo.GetAll()
+}
+
+// UpdateUser updates a user
+func (s *service) UpdateUser(id int, username, email, role string) (*domain.User, error) {
+	user, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Username = username
+	user.Email = email
+	user.Role = role
+
+	if err := s.repo.Update(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+// DeleteUser deletes a user
+func (s *service) DeleteUser(id int) error {
+	return s.repo.Delete(id)
+}

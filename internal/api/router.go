@@ -21,6 +21,10 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userService, jwtService)
 
+	// Set service dependencies for handlers
+	handler.SetUserService(userService)
+	// Note: SetTransactionService should be called from main.go when transactionService is available
+
 	// Ortak middleware'ler
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -50,7 +54,7 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 
 	// User route grubu (korumalı)
 	r.Route("/api/v1/users", func(r chi.Router) {
-		r.Use(mw.AuthMiddleware)
+		r.Use(mw.AuthMiddleware(jwtService))
 		r.Use(mw.RoleMiddleware("admin")) // örnek: sadece admin erişebilir
 		r.Get("/", handler.ListUsers)
 		r.Get("/{id}", handler.GetUser)
@@ -58,8 +62,9 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 		r.Delete("/{id}", handler.DeleteUser)
 	})
 
-	// Transaction route grubu
+	// Transaction route grubu (korumalı)
 	r.Route("/api/v1/transactions", func(r chi.Router) {
+		r.Use(mw.AuthMiddleware(jwtService))
 		r.Post("/credit", handler.Credit)
 		r.Post("/debit", handler.Debit)
 		r.Post("/transfer", handler.Transfer)
@@ -67,8 +72,9 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 		r.Get("/{id}", handler.GetTransaction)
 	})
 
-	// Balance route grubu
+	// Balance route grubu (korumalı)
 	r.Route("/api/v1/balances", func(r chi.Router) {
+		r.Use(mw.AuthMiddleware(jwtService))
 		r.Get("/current", handler.CurrentBalance)
 		r.Get("/historical", handler.HistoricalBalance)
 		r.Get("/at-time", handler.BalanceAtTime)

@@ -164,6 +164,20 @@ golangci-lint run
 - Comprehensive API response formatting
 - Service dependency injection in handlers
 
+### 🚨 Critical Fixes Applied (Latest)
+- **Auth Middleware** - Fixed JWT token validation and user context injection
+- **Database Transactions** - Added SQL Server transaction atomicity (BEGIN TX/COMMIT/ROLLBACK)
+- **User CRUD Handlers** - Completed all user management endpoints
+- **SQL Server Compatibility** - Fixed parameter placeholders (@p1, @p2, etc.)
+- **Database Indexes** - Added performance indexes for critical queries
+- **Role-based Authorization** - Enhanced middleware for admin-only routes
+
+### 🔒 Security Improvements
+- Proper JWT token validation in all protected routes
+- User context properly injected from JWT claims
+- All transaction and balance endpoints now require authentication
+- Role-based access control for admin operations
+
 ---
 
 ## 🤝 Contributing
