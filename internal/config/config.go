@@ -11,6 +11,8 @@ type Config struct {
 	RedisURL    string
 	Environment string
 	JWTSecret   string
+	JaegerURL   string
+	RateLimit   int
 }
 
 func Load() *Config {
@@ -20,6 +22,8 @@ func Load() *Config {
 		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key-here"),
+		JaegerURL:   getEnv("JAEGER_URL", "http://localhost:14268/api/traces"),
+		RateLimit:   getEnvAsInt("RATE_LIMIT_PER_MINUTE", 100),
 	}
 }
 

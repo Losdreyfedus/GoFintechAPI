@@ -11,6 +11,9 @@ import (
 	"backend_path/pkg/jwt"
 	"backend_path/pkg/logger"
 	"backend_path/pkg/server"
+	"backend_path/pkg/tracing"
+	"backend_path/pkg/validator"
+	"context"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -25,6 +28,17 @@ func main() {
 
 	// Initialize logger
 	logger.InitLogger("info", cfg.Environment == "development")
+
+	// Initialize validator
+	validator.InitValidator()
+
+	// Initialize tracing
+	if err := tracing.InitTracer("gofintech-backend", "1.0.0", cfg.JaegerURL); err != nil {
+		logger.Error("Failed to initialize tracing", err, map[string]interface{}{
+			"jaeger_url": cfg.JaegerURL,
+		})
+		// Don't fail startup if tracing fails
+	}
 
 	// Initialize database connection
 	db, err := database.NewConnection(cfg.DatabaseURL)
@@ -52,7 +66,7 @@ func main() {
 	handler.SetBalanceService(balanceService)
 
 	// Create router with dependencies
-	router := api.NewRouter(userService, jwtService)
+	router := api.NewRouter(userService, jwtService, cfg)
 
 	// Create server
 	srv := server.NewServer(":"+cfg.Port, router)
@@ -61,9 +75,20 @@ func main() {
 	logger.Info("Starting application", map[string]interface{}{
 		"port":        cfg.Port,
 		"environment": cfg.Environment,
+		"jaeger_url":  cfg.JaegerURL,
+		"rate_limit":  cfg.RateLimit,
 	})
+
+	// Graceful shutdown with tracing cleanup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	if err := srv.Start(); err != nil {
 		logger.Fatal("Server failed to start", err, nil)
+	}
+
+	// Cleanup tracing
+	if err := tracing.Shutdown(ctx); err != nil {
+		logger.Error("Failed to shutdown tracing", err, nil)
 	}
 }

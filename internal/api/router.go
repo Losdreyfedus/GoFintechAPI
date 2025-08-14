@@ -6,6 +6,7 @@ import (
 
 	"backend_path/internal/api/handler"
 	mw "backend_path/internal/api/middleware"
+	"backend_path/internal/config"
 	"backend_path/internal/user"
 	"backend_path/pkg/jwt"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Handler {
+func NewRouter(userService user.UserService, jwtService *jwt.JWTService, cfg *config.Config) http.Handler {
 	r := chi.NewRouter()
 
 	// Initialize handlers
@@ -28,9 +29,12 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 	// Ortak middleware'ler
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(mw.ErrorHandlingMiddleware)                 // Error handling and panic recovery
-	r.Use(mw.PrometheusMiddleware)                    // Prometheus metrics
-	r.Use(mw.RateLimitMiddleware(100, 1*time.Minute)) // Rate limiting: 100 requests per minute
+	r.Use(mw.TracingMiddleware)                                 // OpenTelemetry tracing
+	r.Use(mw.SecurityHeadersMiddleware)                         // Security headers
+	r.Use(mw.ValidationMiddleware)                              // Request validation
+	r.Use(mw.ErrorHandlingMiddleware)                           // Error handling and panic recovery
+	r.Use(mw.PrometheusMiddleware)                              // Prometheus metrics
+	r.Use(mw.RateLimitMiddleware(cfg.RateLimit, 1*time.Minute)) // Rate limiting from config
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
