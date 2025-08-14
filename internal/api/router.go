@@ -28,6 +28,7 @@ func NewRouter(userService user.UserService, jwtService *jwt.JWTService) http.Ha
 	// Ortak middleware'ler
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(mw.ErrorHandlingMiddleware)                 // Error handling and panic recovery
 	r.Use(mw.PrometheusMiddleware)                    // Prometheus metrics
 	r.Use(mw.RateLimitMiddleware(100, 1*time.Minute)) // Rate limiting: 100 requests per minute
 	r.Use(cors.Handler(cors.Options{

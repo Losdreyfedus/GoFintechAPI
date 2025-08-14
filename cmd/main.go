@@ -43,10 +43,11 @@ func main() {
 
 	// Initialize services
 	userService := user.NewService(userRepo)
-	transactionService := transaction.NewService(transactionRepo)
 	balanceService := balance.NewService(balanceRepo)
+	transactionService := transaction.NewService(transactionRepo, balanceService)
 
 	// Set service dependencies in handlers
+	handler.SetUserService(userService)
 	handler.SetTransactionService(transactionService)
 	handler.SetBalanceService(balanceService)
 

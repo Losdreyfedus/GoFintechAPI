@@ -89,7 +89,7 @@ type Balance struct {
 func (b *Balance) Update(amount float64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.Amount = amount
+	b.Amount += amount
 	b.LastUpdatedAt = time.Now()
 }
 

@@ -9,11 +9,16 @@ import (
 )
 
 type service struct {
-	repo Repository
+	repo           Repository
+	balanceService interface {
+		UpdateBalance(userID int, amount float64) error
+	}
 }
 
-func NewService(repo Repository) TransactionService {
-	return &service{repo: repo}
+func NewService(repo Repository, balanceService interface {
+	UpdateBalance(userID int, amount float64) error
+}) TransactionService {
+	return &service{repo: repo, balanceService: balanceService}
 }
 
 func (s *service) ProcessCredit(userID int, amount float64) (*domain.Transaction, error) {
@@ -23,7 +28,7 @@ func (s *service) ProcessCredit(userID int, amount float64) (*domain.Transaction
 
 	// Create credit transaction
 	tx := &domain.Transaction{
-		FromUserID: 0, // System credit
+		FromUserID: -1, // System credit (will be set to NULL in database)
 		ToUserID:   userID,
 		Amount:     amount,
 		Type:       "credit",
@@ -49,6 +54,15 @@ func (s *service) ProcessCredit(userID int, amount float64) (*domain.Transaction
 		return nil, err
 	}
 
+	// Update user balance
+	if err := s.balanceService.UpdateBalance(userID, amount); err != nil {
+		logger.Error("Failed to update user balance after credit", err, map[string]interface{}{
+			"user_id": userID,
+			"amount":  amount,
+		})
+		// Don't fail the transaction if balance update fails
+	}
+
 	logger.Info("Credit transaction processed successfully", map[string]interface{}{
 		"transaction_id": tx.ID,
 		"user_id":        userID,
@@ -66,7 +80,7 @@ func (s *service) ProcessDebit(userID int, amount float64) (*domain.Transaction,
 	// Create debit transaction
 	tx := &domain.Transaction{
 		FromUserID: userID,
-		ToUserID:   0, // System debit
+		ToUserID:   -1, // System debit (will be set to NULL in database)
 		Amount:     amount,
 		Type:       "debit",
 		Status:     domain.StatusPending,
@@ -89,6 +103,15 @@ func (s *service) ProcessDebit(userID int, amount float64) (*domain.Transaction,
 			"transaction_id": tx.ID,
 		})
 		return nil, err
+	}
+
+	// Update user balance (subtract amount)
+	if err := s.balanceService.UpdateBalance(userID, -amount); err != nil {
+		logger.Error("Failed to update user balance after debit", err, map[string]interface{}{
+			"user_id": userID,
+			"amount":  amount,
+		})
+		// Don't fail the transaction if balance update fails
 	}
 
 	logger.Info("Debit transaction processed successfully", map[string]interface{}{
@@ -136,6 +159,24 @@ func (s *service) ProcessTransfer(fromUserID, toUserID int, amount float64) (*do
 			"transaction_id": tx.ID,
 		})
 		return nil, err
+	}
+
+	// Update sender balance (subtract amount)
+	if err := s.balanceService.UpdateBalance(fromUserID, -amount); err != nil {
+		logger.Error("Failed to update sender balance after transfer", err, map[string]interface{}{
+			"from_user_id": fromUserID,
+			"amount":       amount,
+		})
+		// Don't fail the transaction if balance update fails
+	}
+
+	// Update receiver balance (add amount)
+	if err := s.balanceService.UpdateBalance(toUserID, amount); err != nil {
+		logger.Error("Failed to update receiver balance after transfer", err, map[string]interface{}{
+			"to_user_id": toUserID,
+			"amount":     amount,
+		})
+		// Don't fail the transaction if balance update fails
 	}
 
 	logger.Info("Transfer transaction processed successfully", map[string]interface{}{

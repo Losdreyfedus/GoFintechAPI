@@ -17,10 +17,6 @@ func NewService(repo Repository) BalanceService {
 }
 
 func (s *service) UpdateBalance(userID int, amount float64) error {
-	if amount < 0 {
-		return errors.New("balance amount cannot be negative")
-	}
-
 	// Get current balance
 	balance, err := s.repo.GetByUserID(userID)
 	if err != nil {

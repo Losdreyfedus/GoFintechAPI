@@ -18,15 +18,32 @@ func NewSQLRepository(db *sql.DB) Repository {
 func (r *sqlRepository) Create(tx *domain.Transaction) error {
 	query := `
 		INSERT INTO transactions (from_user_id, to_user_id, amount, type, status, created_at)
-		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
-		SELECT SCOPE_IDENTITY();
+		OUTPUT INSERTED.id
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
+
+	// Handle system transactions (from_user_id or to_user_id = -1)
+	var fromUserID, toUserID sql.NullInt64
+
+	if tx.FromUserID == -1 {
+		fromUserID.Valid = false
+	} else {
+		fromUserID.Int64 = int64(tx.FromUserID)
+		fromUserID.Valid = true
+	}
+
+	if tx.ToUserID == -1 {
+		toUserID.Valid = false
+	} else {
+		toUserID.Int64 = int64(tx.ToUserID)
+		toUserID.Valid = true
+	}
 
 	var id int
 	err := r.db.QueryRow(
 		query,
-		tx.FromUserID,
-		tx.ToUserID,
+		fromUserID,
+		toUserID,
 		tx.Amount,
 		tx.Type,
 		tx.Status,
@@ -57,8 +74,8 @@ func (r *sqlRepository) CreateWithTransaction(ctx context.Context, tx *domain.Tr
 
 	query := `
 		INSERT INTO transactions (from_user_id, to_user_id, amount, type, status, created_at)
-		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
-		SELECT SCOPE_IDENTITY();
+		OUTPUT INSERTED.id
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
 	var id int
@@ -90,14 +107,16 @@ func (r *sqlRepository) GetByID(id int) (*domain.Transaction, error) {
 	query := `
 		SELECT id, from_user_id, to_user_id, amount, type, status, created_at
 		FROM transactions
-		WHERE id = @p1
+		WHERE id = ?
 	`
 
 	tx := &domain.Transaction{}
+	var fromUserID, toUserID sql.NullInt64
+
 	err := r.db.QueryRow(query, id).Scan(
 		&tx.ID,
-		&tx.FromUserID,
-		&tx.ToUserID,
+		&fromUserID,
+		&toUserID,
 		&tx.Amount,
 		&tx.Type,
 		&tx.Status,
@@ -111,6 +130,19 @@ func (r *sqlRepository) GetByID(id int) (*domain.Transaction, error) {
 		return nil, fmt.Errorf("failed to get transaction: %w", err)
 	}
 
+	// Handle NULL values
+	if fromUserID.Valid {
+		tx.FromUserID = int(fromUserID.Int64)
+	} else {
+		tx.FromUserID = -1 // System transaction
+	}
+
+	if toUserID.Valid {
+		tx.ToUserID = int(toUserID.Int64)
+	} else {
+		tx.ToUserID = -1 // System transaction
+	}
+
 	return tx, nil
 }
 
@@ -118,7 +150,7 @@ func (r *sqlRepository) GetByUser(userID int) ([]*domain.Transaction, error) {
 	query := `
 		SELECT id, from_user_id, to_user_id, amount, type, status, created_at
 		FROM transactions
-		WHERE from_user_id = @p1 OR to_user_id = @p2
+		WHERE from_user_id = ? OR to_user_id = ?
 		ORDER BY created_at DESC
 	`
 
@@ -131,10 +163,12 @@ func (r *sqlRepository) GetByUser(userID int) ([]*domain.Transaction, error) {
 	var transactions []*domain.Transaction
 	for rows.Next() {
 		tx := &domain.Transaction{}
+		var fromUserID, toUserID sql.NullInt64
+
 		err := rows.Scan(
 			&tx.ID,
-			&tx.FromUserID,
-			&tx.ToUserID,
+			&fromUserID,
+			&toUserID,
 			&tx.Amount,
 			&tx.Type,
 			&tx.Status,
@@ -143,6 +177,20 @@ func (r *sqlRepository) GetByUser(userID int) ([]*domain.Transaction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan transaction: %w", err)
 		}
+
+		// Handle NULL values
+		if fromUserID.Valid {
+			tx.FromUserID = int(fromUserID.Int64)
+		} else {
+			tx.FromUserID = -1 // System transaction
+		}
+
+		if toUserID.Valid {
+			tx.ToUserID = int(toUserID.Int64)
+		} else {
+			tx.ToUserID = -1 // System transaction
+		}
+
 		transactions = append(transactions, tx)
 	}
 
@@ -152,14 +200,31 @@ func (r *sqlRepository) GetByUser(userID int) ([]*domain.Transaction, error) {
 func (r *sqlRepository) Update(tx *domain.Transaction) error {
 	query := `
 		UPDATE transactions
-		SET from_user_id = @p1, to_user_id = @p2, amount = @p3, type = @p4, status = @p5
-		WHERE id = @p6
+		SET from_user_id = ?, to_user_id = ?, amount = ?, type = ?, status = ?
+		WHERE id = ?
 	`
+
+	// Handle system transactions (from_user_id or to_user_id = -1)
+	var fromUserID, toUserID sql.NullInt64
+
+	if tx.FromUserID == -1 {
+		fromUserID.Valid = false
+	} else {
+		fromUserID.Int64 = int64(tx.FromUserID)
+		fromUserID.Valid = true
+	}
+
+	if tx.ToUserID == -1 {
+		toUserID.Valid = false
+	} else {
+		toUserID.Int64 = int64(tx.ToUserID)
+		toUserID.Valid = true
+	}
 
 	_, err := r.db.Exec(
 		query,
-		tx.FromUserID,
-		tx.ToUserID,
+		fromUserID,
+		toUserID,
 		tx.Amount,
 		tx.Type,
 		tx.Status,

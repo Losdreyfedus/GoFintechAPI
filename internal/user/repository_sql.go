@@ -21,9 +21,9 @@ func NewSQLRepository(db *sql.DB) Repository {
 // Create creates a new user
 func (r *SQLRepository) Create(user *domain.User) error {
 	query := `
-		INSERT INTO dbo.users (username, email, password_hash, role, created_at, updated_at)
+		INSERT INTO users (username, email, password_hash, role, created_at, updated_at)
 		OUTPUT INSERTED.id
-		VALUES (?, ?, ?, ?, ?, ?);
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
 	now := time.Now()
@@ -49,7 +49,7 @@ func (r *SQLRepository) Create(user *domain.User) error {
 func (r *SQLRepository) GetByID(id int) (*domain.User, error) {
 	query := `
 		SELECT id, username, email, password_hash, role, created_at, updated_at
-		FROM dbo.users
+		FROM users
 		WHERE id = ?
 	`
 
@@ -78,7 +78,7 @@ func (r *SQLRepository) GetByID(id int) (*domain.User, error) {
 func (r *SQLRepository) GetByEmail(email string) (*domain.User, error) {
 	query := `
 		SELECT id, username, email, password_hash, role, created_at, updated_at
-		FROM dbo.users
+		FROM users
 		WHERE email = ?
 	`
 
@@ -106,7 +106,7 @@ func (r *SQLRepository) GetByEmail(email string) (*domain.User, error) {
 // Update updates a user
 func (r *SQLRepository) Update(user *domain.User) error {
 	query := `
-		UPDATE dbo.users
+		UPDATE users
 		SET username = ?, email = ?, role = ?, updated_at = ?
 		WHERE id = ?
 	`
@@ -139,7 +139,7 @@ func (r *SQLRepository) Update(user *domain.User) error {
 
 // Delete deletes a user by ID
 func (r *SQLRepository) Delete(id int) error {
-	query := `DELETE FROM dbo.users WHERE id = ?`
+	query := `DELETE FROM users WHERE id = ?`
 
 	result, err := r.db.Exec(query, id)
 	if err != nil {
@@ -162,7 +162,7 @@ func (r *SQLRepository) Delete(id int) error {
 func (r *SQLRepository) GetAll() ([]*domain.User, error) {
 	query := `
 		SELECT id, username, email, password_hash, role, created_at, updated_at
-		FROM dbo.users
+		FROM users
 		ORDER BY created_at DESC
 	`
 

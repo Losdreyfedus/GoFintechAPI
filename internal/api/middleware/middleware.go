@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,7 +13,7 @@ import (
 
 type contextKey string
 
-const userContextKey = contextKey("user")
+const userContextKey = "user"
 
 // Real authentication middleware with JWT validation
 func AuthMiddleware(jwtService *jwt.JWTService) func(http.Handler) http.Handler {
@@ -50,29 +49,12 @@ func RoleMiddleware(requiredRole string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// TODO: Get user role from userService
-			// For now, we'll assume all authenticated users have access
-			// This should be implemented with proper role checking
+			// Note: Role-based authorization is currently simplified
+			// In production, implement proper role checking by injecting userService
+			// and validating user roles against the requiredRole parameter
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// Request validation middleware (checks for JSON Content-Type and non-empty body)
-func ValidationMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost || r.Method == http.MethodPut {
-			if r.Header.Get("Content-Type") != "application/json" {
-				http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
-				return
-			}
-			if r.ContentLength == 0 {
-				http.Error(w, "Request body cannot be empty", http.StatusBadRequest)
-				return
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 // Error handling middleware (recovers from panics and returns JSON error)
@@ -86,16 +68,6 @@ func ErrorHandlingMiddleware(next http.Handler) http.Handler {
 			}
 		}()
 		next.ServeHTTP(w, r)
-	})
-}
-
-// Performance monitoring middleware (logs request duration)
-func PerformanceMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-		duration := time.Since(start)
-		log.Printf("%s %s took %v", r.Method, r.URL.Path, duration)
 	})
 }
 

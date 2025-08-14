@@ -39,25 +39,35 @@ func (r *sqlRepository) GetByUserID(userID int) (*domain.Balance, error) {
 }
 
 func (r *sqlRepository) Update(balance *domain.Balance) error {
-	query := `
-		MERGE balances AS target
-		USING (SELECT ? AS user_id, ? AS amount, ? AS last_updated_at) AS source
-		ON target.user_id = source.user_id
-		WHEN MATCHED THEN
-			UPDATE SET amount = source.amount, last_updated_at = source.last_updated_at
-		WHEN NOT MATCHED THEN
-			INSERT (user_id, amount, last_updated_at) VALUES (source.user_id, source.amount, source.last_updated_at);
+	// First try to update existing balance
+	updateQuery := `
+		UPDATE balances 
+		SET amount = ?, last_updated_at = ?
+		WHERE user_id = ?
 	`
 
-	_, err := r.db.Exec(
-		query,
-		balance.UserID,
-		balance.Amount,
-		balance.LastUpdatedAt,
-	)
-
+	result, err := r.db.Exec(updateQuery, balance.Amount, balance.LastUpdatedAt, balance.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to update balance: %w", err)
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	// If no rows were affected, insert new balance
+	if rowsAffected == 0 {
+		insertQuery := `
+			INSERT INTO balances (user_id, amount, last_updated_at)
+			VALUES (?, ?, ?)
+		`
+
+		_, err = r.db.Exec(insertQuery, balance.UserID, balance.Amount, balance.LastUpdatedAt)
+		if err != nil {
+			return fmt.Errorf("failed to insert balance: %w", err)
+		}
 	}
 
 	return nil
