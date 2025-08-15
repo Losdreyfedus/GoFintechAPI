@@ -6,24 +6,30 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	RedisURL    string
-	Environment string
-	JWTSecret   string
-	JaegerURL   string
-	RateLimit   int
+	Port                string
+	DatabaseURL         string
+	RedisURL            string
+	Environment         string
+	JWTSecret           string
+	JaegerURL           string
+	RateLimit           int
+	CacheStrategy       string
+	ReplicationMode     string
+	SupportedCurrencies []string
 }
 
 func Load() *Config {
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379"),
-		Environment: getEnv("ENVIRONMENT", "development"),
-		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key-here"),
-		JaegerURL:   getEnv("JAEGER_URL", "http://localhost:14268/api/traces"),
-		RateLimit:   getEnvAsInt("RATE_LIMIT_PER_MINUTE", 100),
+		Port:                getEnv("PORT", "8080"),
+		DatabaseURL:         getEnv("DATABASE_URL", ""),
+		RedisURL:            getEnv("REDIS_URL", "redis://localhost:6379"),
+		Environment:         getEnv("ENVIRONMENT", "development"),
+		JWTSecret:           getEnv("JWT_SECRET", "your-secret-key-here"),
+		JaegerURL:           getEnv("JAEGER_URL", "http://localhost:14268/api/traces"),
+		RateLimit:           getEnvAsInt("RATE_LIMIT_PER_MINUTE", 100),
+		CacheStrategy:       getEnv("CACHE_STRATEGY", "write_through"),
+		ReplicationMode:     getEnv("REPLICATION_MODE", "master_slave"),
+		SupportedCurrencies: []string{"USD", "EUR", "TRY", "GBP", "JPY"},
 	}
 }
 

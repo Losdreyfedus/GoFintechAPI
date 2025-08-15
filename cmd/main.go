@@ -3,10 +3,12 @@ package main
 import (
 	"backend_path/internal/api"
 	"backend_path/internal/api/handler"
+	"backend_path/internal/auth"
 	"backend_path/internal/balance"
 	"backend_path/internal/config"
 	"backend_path/internal/transaction"
 	"backend_path/internal/user"
+	"backend_path/pkg/cache"
 	"backend_path/pkg/database"
 	"backend_path/pkg/jwt"
 	"backend_path/pkg/logger"
@@ -17,6 +19,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -31,6 +34,17 @@ func main() {
 
 	// Initialize validator
 	validator.InitValidator()
+
+	// Initialize RBAC manager (for future use)
+	_ = auth.NewRBACManager()
+
+	// Initialize advanced cache (for future use)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	_ = cache.NewAdvancedCache(redisClient, cache.CacheStrategy(cfg.CacheStrategy))
 
 	// Initialize tracing
 	if err := tracing.InitTracer("gofintech-backend", "1.0.0", cfg.JaegerURL); err != nil {
